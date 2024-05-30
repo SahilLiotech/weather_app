@@ -5,8 +5,6 @@ import 'package:weather/weather.dart';
 import 'package:collection/collection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:weather_app/helpers/db_helper.dart';
-import 'package:weather_app/models/temeprature_model.dart';
-import 'package:weather_app/models/weather_model.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -70,6 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String? _selectedCity;
   List<String> _filteredCities = [];
   final dbHelper = WeatherDataBaseHelper();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -83,66 +82,20 @@ class _MyHomePageState extends State<MyHomePage> {
     _fetchWeatherModel(city);
   }
 
-  // Future<void> _fetchWeatherModel(String city) async {
-  //   Weather currentWeather = await _wf.currentWeatherByCityName(city);
-  //   List<Weather> forecast = await _wf.fiveDayForecastByCityName(city);
-
-  //   WeatherModel weatherModel = WeatherModel(
-  //     date: DateTime.now(),
-  //     areaName: currentWeather.areaName!,
-  //     weatherDescription: currentWeather.weatherDescription!,
-  //     weatherIcon: currentWeather.weatherIcon!,
-  //     temperature: MyTemperature(celsius: currentWeather.temperature!.celsius!),
-  //     tempMin: MyTemperature(celsius: forecast.first.tempMin!.celsius!),
-  //     tempMax: MyTemperature(celsius: forecast.first.tempMax!.celsius!),
-  //     windSpeed: currentWeather.windSpeed!,
-  //     humidity: currentWeather.humidity!.toInt(),
-  //   );
-
-  //   await dbHelper.deleteAllWeatherModels();
-  //   await dbHelper.insertWeatherModel(weatherModel);
-
-  //   setState(() {
-  //     _currentWeather = currentWeather;
-  //     _forecast = forecast;
-  //     _selectedCity = city;
-  //   });
-  // }
-
   Future<void> _fetchWeatherModel(String city) async {
-    try {
-      print('Fetching weather data for $city');
-      Weather currentWeather = await _wf.currentWeatherByCityName(city);
-      print('Current weather fetched: ${currentWeather.toString()}');
+    setState(() {
+      _isLoading = true;
+    });
 
-      List<Weather> forecast = await _wf.fiveDayForecastByCityName(city);
-      print('Forecast fetched: ${forecast.toString()}');
+    Weather currentWeather = await _wf.currentWeatherByCityName(city);
+    List<Weather> forecast = await _wf.fiveDayForecastByCityName(city);
 
-      WeatherModel weatherModel = WeatherModel(
-        date: DateTime.now(),
-        areaName: currentWeather.areaName!,
-        weatherDescription: currentWeather.weatherDescription!,
-        weatherIcon: currentWeather.weatherIcon!,
-        temperature:
-            MyTemperature(celsius: currentWeather.temperature!.celsius!),
-        tempMin: MyTemperature(celsius: forecast.first.tempMin!.celsius!),
-        tempMax: MyTemperature(celsius: forecast.first.tempMax!.celsius!),
-        windSpeed: currentWeather.windSpeed!,
-        humidity: currentWeather.humidity!.toInt(),
-      );
-
-      await dbHelper.deleteAllWeatherModels();
-      await dbHelper.insertWeatherModel(weatherModel);
-
-      setState(() {
-        _currentWeather = currentWeather;
-        _forecast = forecast;
-        _selectedCity = city;
-      });
-    } catch (e) {
-      print('Error fetching weather data: $e');
-      // You can also show an error message to the user here
-    }
+    setState(() {
+      _currentWeather = currentWeather;
+      _forecast = forecast;
+      _selectedCity = city;
+      _isLoading = false;
+    });
   }
 
   Future<void> _saveSelectedCity(String city) async {
@@ -186,15 +139,32 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: const EdgeInsets.all(8.0),
             child: TextField(
               controller: _searchController,
-              onChanged: _filterCityList,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(
+              onChanged: (value) {
+                _filterCityList(value);
+                if (value.isEmpty) {
+                  setState(() {
+                    _filteredCities = [];
+                  });
+                }
+              },
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(20.0)),
                 ),
                 hintText: 'Search City',
                 filled: true,
                 fillColor: Colors.white,
-                suffixIcon: Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _filteredCities = [];
+                          });
+                        },
+                      )
+                    : const Icon(Icons.search),
               ),
             ),
           ),
@@ -210,14 +180,18 @@ class _MyHomePageState extends State<MyHomePage> {
                         _fetchWeatherModel(_filteredCities[index]);
                         _saveSelectedCity(_filteredCities[index]);
                         setState(() {
-                          _filteredCities.clear();
+                          _filteredCities = [];
                         });
                       },
                     );
                   },
                 )
               : Container(),
-          _currentWeatherUI(),
+          _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : _currentWeatherUI(),
           _forecastUI(),
         ],
       ),
