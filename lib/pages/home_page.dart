@@ -191,7 +191,13 @@ class _MyHomePageState extends State<MyHomePage> {
               ? const Center(
                   child: CircularProgressIndicator(),
                 )
-              : _currentWeatherUI(),
+              : const SizedBox(
+                  height: 50,
+                ),
+          _currentWeatherUI(),
+          const SizedBox(
+            height: 50,
+          ),
           _forecastUI(),
         ],
       ),
@@ -199,27 +205,18 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _currentWeatherUI() {
-    return SizedBox(
-      width: MediaQuery.sizeOf(context).width,
-      height: MediaQuery.sizeOf(context).height,
-      child: Column(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _locationHeader(),
-          SizedBox(
-            height: MediaQuery.sizeOf(context).height * 0.02,
-          ),
-          _dateTimeInfo(),
-          _weatherIcon(),
-          _currentTemp(),
-          SizedBox(
-            height: MediaQuery.sizeOf(context).height * 0.02,
-          ),
-          _extraInfo()
-        ],
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _locationHeader(),
+        const SizedBox(height: 10),
+        _dateTimeInfo(),
+        _weatherIcon(),
+        _currentTemp(),
+        const SizedBox(height: 10),
+        _extraInfo(),
+      ],
     );
   }
 
